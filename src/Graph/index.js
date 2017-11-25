@@ -285,8 +285,8 @@ export default class Graph extends Component<Props, State> {
     };
   }
 
-  call() {
-    this.props.callGraph();
+  call(el) {
+    this.props.callGraph(el);
   }
 
   renderNode(node: NodeJsonType) {
@@ -302,7 +302,7 @@ export default class Graph extends Component<Props, State> {
         ref={(component: ReactElementRef<typeof Node>) =>
           component && this.nodeComponents.push(component)}
         getGraph={() => this.graphContainer}
-        cb={() => this.call()}
+        cb={el => this.call(el)}
         onChange={(nodeJSON: NodeJsonType) => {
           this._onChange(nodeJSON);
         }}
