@@ -26,6 +26,7 @@ type Props = {
   scale: number,
   minScale: number,
   maxScale: number,
+  text: string,
 
   shouldNodeFitContent: boolean,
   Node: ReactElementRef<typeof Node>,
@@ -44,6 +45,7 @@ type State = {
   minScale: number,
   maxScale: number,
   scale: number,
+  text: string,
 
   isStatic: boolean,
   isVertical: boolean,
@@ -70,6 +72,7 @@ export default class Graph extends Component<Props, State> {
     maxScale: 1,
     width: 600,
     height: 400,
+    text: "default",
     style: {}
   };
 
@@ -268,6 +271,9 @@ export default class Graph extends Component<Props, State> {
       size: {
         width: props.width,
         height: props.height
+      },
+      metadata: {
+        text: props.text
       }
     }));
   }
@@ -304,6 +310,7 @@ export default class Graph extends Component<Props, State> {
         y={node.position ? node.position.y : 0}
         width={width}
         height={height}
+        text={node.metadata.text}
         isStatic={isStatic}
         shouldFitContent={shouldNodeFitContent}
         {...node}

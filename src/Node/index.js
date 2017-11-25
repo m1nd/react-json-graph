@@ -3,305 +3,323 @@
     global document MouseEvent SyntheticMouseEvent HTMLDivElement
 */
 
-import React, {Component} from 'react';
-import type {Node as ReactNode, ElementRef as ReactElementRef} from 'react';
-import Edge from '../Edge';
-import styles from './node.css';
+import React, { Component } from "react";
+import type { Node as ReactNode, ElementRef as ReactElementRef } from "react";
+import Edge from "../Edge";
+import styles from "./node.css";
 
-import type {GraphType, NodeJsonType} from '../types';
+import type { GraphType, NodeJsonType } from "../types";
 
 type GraphRect = {
-    width: number,
-    height: number,
-    offsetTop: number,
-    offsetLeft: number,
+  width: number,
+  height: number,
+  offsetTop: number,
+  offsetLeft: number
 };
 
 type Props = {
-    id: string,
-    x: number,
-    y: number,
-    scale: number,
-    label: string,
-    width: ?number,
-    height: ?number,
+  id: string,
+  x: number,
+  y: number,
+  scale: number,
+  label: string,
+  width: ?number,
+  height: ?number,
+  text: ?string,
 
-    isStatic: boolean,
-    shouldFitContent: boolean,
+  isStatic: boolean,
+  shouldFitContent: boolean,
 
-    getGraph: () => GraphType,
-    onChange: ?(NodeJsonType) => void,
+  getGraph: () => GraphType,
+  onChange: ?(NodeJsonType) => void
 };
 
 type State = {
-    id: string,
-    x: number,
-    y: number,
-    scale: number,
-    label: string,
-    width: number,
-    height: number,
-    isDragging: boolean,
-    isCompactView: boolean,
+  id: string,
+  x: number,
+  y: number,
+  scale: number,
+  label: string,
+  width: number,
+  height: number,
+  text: string,
+  isDragging: boolean,
+  isCompactView: boolean
 };
 
 export default class Node extends Component<Props, State> {
-    id: string;
+  id: string;
 
-    _onMouseUp: (MouseEvent) => void;
-    _onMouseDown: (SyntheticMouseEvent<>) => void;
-    _onMouseMove: (MouseEvent) => void;
+  _onMouseUp: MouseEvent => void;
+  _onMouseDown: (SyntheticMouseEvent<>) => void;
+  _onMouseMove: MouseEvent => void;
 
-    getGraph: () => ?GraphRect;
-    moveEdges: () => void;
-    renderJoint: (type: string, edge: ReactElementRef<typeof Edge>) => ReactNode;
-    labelEl: ?HTMLDivElement;
+  getGraph: () => ?GraphRect;
+  moveEdges: () => void;
+  renderJoint: (type: string, edge: ReactElementRef<typeof Edge>) => ReactNode;
+  labelEl: ?HTMLDivElement;
 
-    static defaultProps = {
-        x: 200,
-        y: 200,
-        width: 160,
-        height: 35,
+  static defaultProps = {
+    x: 200,
+    y: 200,
+    width: 160,
+    height: 35,
+    text: "default"
+  };
+
+  constructor(props: Props) {
+    super(props);
+
+    this.state = {
+      id: props.id,
+      x: props.x,
+      y: props.y,
+      scale: props.scale,
+      label: props.label,
+      width: props.width,
+      height: props.height,
+      text: props.text,
+      isDragging: false,
+      isCompactView: true
+    };
+
+    this._onMouseUp = this._onMouseUp.bind(this);
+    this._onMouseMove = this._onMouseMove.bind(this);
+  }
+
+  componentDidMount() {
+    if (this.props.shouldFitContent === false) {
+      return;
     }
 
-    constructor(props: Props) {
-        super(props);
+    const nextState = {};
+    const { width, height } = this.state;
+    const { clientWidth: labelWidth = 0, clientHeight: labelHeight = 0 } =
+      this.labelEl || {};
 
-        this.state = {
-            id: props.id,
-            x: props.x,
-            y: props.y,
-            scale: props.scale,
-            label: props.label,
-            width: props.width,
-            height: props.height,
-            isDragging: false,
-            isCompactView: true,
-        };
-
-        this._onMouseUp = this._onMouseUp.bind(this);
-        this._onMouseMove = this._onMouseMove.bind(this);
+    if (width - 30 < labelWidth) {
+      nextState.width = labelWidth + 30;
     }
 
-    componentDidMount() {
-        if (this.props.shouldFitContent === false) {
-            return;
-        }
-
-        const nextState = {};
-        const {width, height} = this.state;
-        const {clientWidth: labelWidth = 0, clientHeight: labelHeight = 0} = this.labelEl || {};
-
-        if (width - 30 < labelWidth) {
-            nextState.width = labelWidth + 30;
-        }
-
-        if (height - 20 < labelWidth) {
-            nextState.height = labelHeight + 20;
-        }
-
-        if (Object.keys(nextState).length > 0) {
-            this.setState(nextState);
-        }
+    if (height - 20 < labelWidth) {
+      nextState.height = labelHeight + 20;
     }
 
-    componentWillReceiveProps(nextProps: Props) {
-        const {scale, label} = this.state;
-        const {width, height} = nextProps.size || {};
-        const nextState = {};
+    if (Object.keys(nextState).length > 0) {
+      this.setState(nextState);
+    }
+  }
 
-        if (nextProps.scale && nextProps.scale !== scale) {
-            nextState.scale = nextProps.scale;
-        }
+  componentWillReceiveProps(nextProps: Props) {
+    const { scale, label } = this.state;
+    const { width, height } = nextProps.size || {};
+    const nextState = {};
 
-        if (nextProps.label !== label) {
-            Object.assign(nextState, {
-                id: nextProps.id,
-                x: nextProps.x,
-                y: nextProps.y,
-                scale: nextProps.scale,
-                label: nextProps.label,
-                width: width || Node.defaultProps.width,
-                height: height || Node.defaultProps.height,
-            });
-        }
-
-        if (Object.keys(nextState).length > 0) {
-            this.setState(nextState);
-        }
+    if (nextProps.scale && nextProps.scale !== scale) {
+      nextState.scale = nextProps.scale;
     }
 
-    shouldComponentUpdate(nextProps: Props, nextState: State) {
-        const {x, y, width, height, isDragging} = this.state;
-
-        return isDragging !== nextState.isDragging ||
-            x !== nextState.x || y !== nextState.y ||
-            width !== nextState.width || height !== nextState.height;
+    if (nextProps.label !== label) {
+      Object.assign(nextState, {
+        id: nextProps.id,
+        x: nextProps.x,
+        y: nextProps.y,
+        scale: nextProps.scale,
+        label: nextProps.label,
+        text: nextProps.text,
+        width: width || Node.defaultProps.width,
+        height: height || Node.defaultProps.height
+      });
     }
 
-    componentDidUpdate(props: Props, state: State) {
-        if (this.props.isStatic) {
-            return;
-        }
+    if (Object.keys(nextState).length > 0) {
+      this.setState(nextState);
+    }
+  }
 
-        if (this.state.isDragging && !state.isDragging) {
-            document.addEventListener('mousemove', this._onMouseMove);
-            document.addEventListener('mouseup', this._onMouseUp);
-        } else if (!this.state.isDragging && state.isDragging) {
-            document.removeEventListener('mousemove', this._onMouseMove);
-            document.removeEventListener('mouseup', this._onMouseUp);
-        }
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
+    const { x, y, width, height, isDragging, text } = this.state;
+
+    return (
+      isDragging !== nextState.isDragging ||
+      x !== nextState.x ||
+      y !== nextState.y ||
+      width !== nextState.width ||
+      height !== nextState.height ||
+      text !== nextState.text
+    );
+  }
+
+  componentDidUpdate(props: Props, state: State) {
+    if (this.props.isStatic) {
+      return;
     }
 
-    getGraph(): ?GraphRect {
-        const graph = this.props.getGraph();
+    if (this.state.isDragging && !state.isDragging) {
+      document.addEventListener("mousemove", this._onMouseMove);
+      document.addEventListener("mouseup", this._onMouseUp);
+    } else if (!this.state.isDragging && state.isDragging) {
+      document.removeEventListener("mousemove", this._onMouseMove);
+      document.removeEventListener("mouseup", this._onMouseUp);
+    }
+  }
 
-        if (!graph) {
-            return null;
-        }
+  getGraph(): ?GraphRect {
+    const graph = this.props.getGraph();
 
-        const {offsetTop, offsetLeft, clientWidth, clientHeight} = graph;
-
-        return {
-            offsetTop,
-            offsetLeft,
-            width: clientWidth,
-            height: clientHeight,
-        };
+    if (!graph) {
+      return null;
     }
 
-    toJSON(): NodeJsonType {
-        const {id, label, x, y, width, height} = this.state;
+    const { offsetTop, offsetLeft, clientWidth, clientHeight } = graph;
 
-        return {
-            id,
-            label,
-            position: {x, y},
-            size: {width, height},
-        };
+    return {
+      offsetTop,
+      offsetLeft,
+      width: clientWidth,
+      height: clientHeight
+    };
+  }
+
+  toJSON(): NodeJsonType {
+    const { id, label, x, y, width, height, text } = this.state;
+
+    return {
+      id,
+      label,
+      position: { x, y },
+      size: { width, height },
+      metadata: { text }
+    };
+  }
+
+  /* Event Handlers */
+
+  _onMouseDown(event: SyntheticMouseEvent<>) {
+    // only left mouse button
+    if (event.button !== 0) return;
+
+    this.setState({ isDragging: true });
+
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
+  _onMouseUp(event: MouseEvent) {
+    const { onChange } = this.props;
+
+    this.setState({ isDragging: false });
+
+    if (typeof onChange === "function") {
+      onChange(this.toJSON());
     }
 
-    /* Event Handlers */
+    event.stopPropagation();
+    event.preventDefault();
+  }
 
-    _onMouseDown(event: SyntheticMouseEvent<>) {
-        // only left mouse button
-        if (event.button !== 0) return;
+  _onMouseMove(event: MouseEvent) {
+    const graph = this.getGraph();
+    const { onChange } = this.props;
+    const { x, y, width, height, scale, isDragging } = this.state;
 
-        this.setState({isDragging: true});
+    if (!isDragging || !graph) return;
 
-        event.stopPropagation();
-        event.preventDefault();
+    const nextX = x + event.movementX / scale;
+    const nextY = y + event.movementY / scale;
+
+    if (
+      nextX < 0 ||
+      nextY < 0 ||
+      nextX + width > graph.width ||
+      nextY + height > graph.height
+    ) {
+      return;
     }
 
-    _onMouseUp(event: MouseEvent) {
-        const {onChange} = this.props;
+    const nextState = { x: nextX, y: nextY };
 
-        this.setState({isDragging: false});
+    this.setState(nextState, () => {
+      if (typeof onChange === "function") {
+        onChange(this.toJSON());
+      }
+    });
 
-        if (typeof onChange === 'function') {
-            onChange(this.toJSON());
-        }
+    event.stopPropagation();
+    event.preventDefault();
+  }
 
-        event.stopPropagation();
-        event.preventDefault();
+  /* Render Methods */
+
+  renderJoint(type: string, edge: ReactElementRef<typeof Edge>): ReactNode {
+    const className =
+      type === "input" ? styles.edgeJoint_input : styles.edgeJoint_ouput;
+    let label = null;
+
+    if (type === "input" && typeof edge.targetId !== "string") {
+      label = edge.targetId.label || type;
     }
 
-    _onMouseMove(event: MouseEvent) {
-        const graph = this.getGraph();
-        const {onChange} = this.props;
-        const {x, y, width, height, scale, isDragging} = this.state;
-
-        if (!isDragging || !graph) return;
-
-        const nextX = x + (event.movementX / scale);
-        const nextY = y + (event.movementY / scale);
-
-        if (nextX < 0 || nextY < 0 ||
-            nextX + width > graph.width ||
-            nextY + height > graph.height) {
-            return;
-        }
-
-        const nextState = {x: nextX, y: nextY};
-
-        this.setState(nextState, () => {
-            if (typeof onChange === 'function') {
-                onChange(this.toJSON());
-            }
-        });
-
-        event.stopPropagation();
-        event.preventDefault();
+    if (type === "output" && typeof edge.sourceId !== "string") {
+      label = edge.sourceId.label || type;
     }
 
-    /* Render Methods */
+    const Joint = <span className={styles.edgeJointPoint} />;
 
-    renderJoint(type: string, edge: ReactElementRef<typeof Edge>): ReactNode {
-        const className = type === 'input' ? styles.edgeJoint_input : styles.edgeJoint_ouput;
-        let label = null;
+    return (
+      <div
+        key={`joint_${type}_${edge.sourceId}_${edge.targetId}`}
+        className={className}
+      >
+        {type === "input" && Joint}
+        {label && <span>{label}</span>}
+        {type === "output" && Joint}
+      </div>
+    );
+  }
 
-        if (type === 'input' && typeof edge.targetId !== 'string') {
-            label = edge.targetId.label || type;
-        }
+  renderContainer({ isDragging, content }) {
+    const { width, height } = this.state;
+    const className = `${styles.container} ${isDragging
+      ? styles.container_dragging_yes
+      : ""}`;
 
-        if (type === 'output' && typeof edge.sourceId !== 'string') {
-            label = edge.sourceId.label || type;
-        }
+    return (
+      <div style={{ width, height }} className={className}>
+        {Boolean(content) && this.renderContent(content)}
+      </div>
+    );
+  }
 
-        const Joint = (<span className={styles.edgeJointPoint} />);
+  renderContent(label: string) {
+    return (
+      <div
+        className={styles.label}
+        ref={element => {
+          this.labelEl = element;
+        }}
+      >
+        {label}
+      </div>
+    );
+  }
 
-        return (
-            <div
-                key={`joint_${type}_${edge.sourceId}_${edge.targetId}`}
-                className={className}
-            >
-                {type === 'input' && Joint}
-                {label && <span>{label}</span>}
-                {type === 'output' && Joint}
-            </div>
-        );
-    }
+  render() {
+    const { isStatic } = this.props;
+    const { x, y, label, isDragging, text } = this.state;
 
-    renderContainer({isDragging, content}) {
-        const {width, height} = this.state;
-        const className = `${styles.container} ${isDragging ? styles.container_dragging_yes : ''}`;
-
-        return (
-            <div style={{width, height}} className={className}>
-                { Boolean(content) && this.renderContent(content) }
-            </div>
-        );
-    }
-
-    renderContent(label: string) {
-        return (
-            <div
-                className={styles.label}
-                ref={(element) => { this.labelEl = element }}
-            >
-                {label}
-            </div>
-        );
-    }
-
-    render() {
-        const {isStatic} = this.props;
-        const {
-            x,
-            y,
-            label,
-            isDragging,
-        } = this.state;
-
-        return (
-            <div
-                style={{left: x, top: y}}
-                className={styles.root}
-                ref={(element) => { this.element = element }}
-                onMouseDown={(event: SyntheticMouseEvent<>) => !isStatic && this._onMouseDown(event)}
-            >
-                { this.renderContainer({isDragging, content: label}) }
-            </div>
-        );
-    }
+    return (
+      <div
+        style={{ left: x, top: y }}
+        className={styles.root}
+        ref={element => {
+          this.element = element;
+        }}
+        onMouseDown={(event: SyntheticMouseEvent<>) =>
+          !isStatic && this._onMouseDown(event)}
+      >
+        {this.renderContainer({ isDragging, content: label })}
+      </div>
+    );
+  }
 }
