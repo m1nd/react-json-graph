@@ -112,7 +112,9 @@ export default class Graph extends Component<Props, State> {
       isDragging: false
     };
 
-    this.call = this.call.bind(this);
+    this.callAdd = this.callAdd.bind(this);
+    this.callRem = this.callRem.bind(this);
+    this.callEdit = this.callEdit.bind(this);
   }
 
   componentDidMount() {
@@ -285,8 +287,16 @@ export default class Graph extends Component<Props, State> {
     };
   }
 
-  call(el) {
-    this.props.callGraph(el);
+  callRem(el) {
+    this.props.removeFromGraph(el);
+  }
+
+  callAdd(el) {
+    this.props.addToGraph(el);
+  }
+
+  callEdit(el) {
+    this.props.editGraph(el);
   }
 
   renderNode(node: NodeJsonType) {
@@ -302,7 +312,9 @@ export default class Graph extends Component<Props, State> {
         ref={(component: ReactElementRef<typeof Node>) =>
           component && this.nodeComponents.push(component)}
         getGraph={() => this.graphContainer}
-        cb={el => this.call(el)}
+        add={el => this.callAdd(el)}
+        rem={id => this.callRem(id)}
+        edit={el => this.callEdit(el)}
         onChange={(nodeJSON: NodeJsonType) => {
           this._onChange(nodeJSON);
         }}
